@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Retro Tech Recall</title>
+<style>
+  :root{
+    --sky-top:#1f6fd0;
+    --sky-mid:#5aa9ec;
+    --sky-low:#bfe3fb;
+    --glass:rgba(255,255,255,0.55);
+    --glass-edge:rgba(255,255,255,0.9);
+    --aero-green:#5bc236;
+    --aero-green-dark:#3a8f1f;
+    --aqua:#12b7c9;
+    --ink2:#0e3a5c;
+    --gold:#ffb400;
+    --bad:#e0473f;
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin:0;
+  }
+  body{
+    font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+    color: var(--ink2);
+    min-height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,0.55), rgba(255,255,255,0) 35%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-low) 78%, #eaf7ff 100%);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ---------- floating bubble/cloud decoration (single ambient layer) ---------- */
+  .bubbles{
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .bubble{
+    position: absolute;
+    bottom: -140px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.95), rgba(255,255,255,0.15) 55%, rgba(255,255,255,0.05) 100%);
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.6), 0 6px 18px rgba(20,80,140,0.15);
+    animation: rise linear infinite;
+    opacity: 0.55;
+  }
+  @keyframes rise{
+    0%{ transform: translateY(0) translateX(0); }
+    100%{ transform: translateY(-130vh) translateX(30px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bubble{ animation: none; opacity: 0.25; }
+  }
+
+  .cloud{
+    position: absolute;
+    background: rgba(255,255,255,0.75);
+    border-radius: 50%;
+    filter: blur(1px);
+  }
+
+  /* ---------- layout ---------- */
+  .page{
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 18px 120px;
+  }
+
+  /* XP-style window chrome for the title */
+  .titlebar-window{
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(10,50,90,0.35), 0 2px 0 rgba(255,255,255,0.6) inset;
+    border: 1px solid rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.35);
+    backdrop-filter: blur(6px);
+    margin-bottom: 26px;
+  }
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #4f9bea 0%, #1f6fd0 55%, #1558ad 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.4);
+  }
+  .titlebar .dot{
+    width: 13px; height: 13px; border-radius: 50%;
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,0.25), inset 0 2px 2px rgba(255,255,255,0.8);
+  }
+  .dot.red{ background: radial-gradient(circle at 35% 30%, #ff9a90, #e0473f); }
+  .dot.yellow{ background: radial-gradient(circle at 35% 30%, #ffe38a, #f2b400); }
+  .dot.green{ background: radial-gradient(circle at 35% 30%, #b6f0a0, #4fae2e); }
+  .titlebar .label{
+    color: #eaf5ff;
+    font-weight: bold;
+    font-size: 0.82rem;
+    margin-left: 6px;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+  }
+  .titlebar-body{
+    padding: 26px 26px 30px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.28));
+  }
+  h1{
+    margin: 0 0 8px;
+    font-size: clamp(1.7rem, 4.2vw, 2.5rem);
+    color: var(--ink2);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+  }
+  .subtitle{
+    margin: 0 auto;
+    max-width: 640px;
+    font-size: 1rem;
+    color: #24547f;
+    line-height: 1.5;
+  }
+
+  /* status strip */
+  .status{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    margin: 18px 0 26px;
+  }
+  .pill{
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-weight: bold;
+    color: var(--ink2);
+    box-shadow: 0 4px 10px rgba(20,70,120,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
+    font-size: 0.92rem;
+  }
+  .pill.score{ color: var(--aero-green-dark); }
+
+  /* grid of cards */
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 720px){
+    .grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .card{
+    aspect-ratio: 1 / 1;
+    perspective: 1000px;
+    cursor: pointer;
+  }
+  .card-inner{
+    position: relative;
+    width: 100%; height: 100%;
+    transition: transform 0.55s cubic-bezier(.2,.9,.3,1.2);
+    transform-style: preserve-3d;
+  }
+  .card.flipped .card-inner{ transform: rotateY(180deg); }
+  .card.solved{ cursor: default; }
+
+  .face{
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    backface-visibility: hidden;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.85);
+  }
+  .face.front{
+    background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.95), rgba(255,255,255,0.05) 45%),
+                linear-gradient(160deg, #7cc9ff 0%, #1f7fd6 60%, #135aa3 100%);
+    box-shadow: 0 10px 20px rgba(15,60,110,0.35), inset 0 2px 3px rgba(255,255,255,0.7);
+  }
+  .face.front .icon{
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    filter: drop-shadow(0 3px 3px rgba(0,0,20,0.25));
+  }
+  .face.front .tap{
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.9);
+    font-weight: bold;
+    letter-spacing: 0.3px;
+  }
+  .face.back{
+    transform: rotateY(180deg);
+    background: linear-gradient(160deg, rgba(255,255,255,0.9), rgba(210,236,255,0.85));
+    box-shadow: 0 10px 20px rgba(15,60,110,0.3), inset 0 2px 3px rgba(255,255,255,0.9);
+    justify-content: flex-start;
+    text-align: left;
+    overflow: hidden;
+  }
+
+  .card.solved.correct .face.front{
+    background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.95), rgba(255,255,255,0.05) 45%),
+                linear-gradient(160deg, #a8ea86 0%, #5bc236 60%, #3a8f1f 100%);
+  }
+  .card.solved.wrong .face.front{
+    background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.95), rgba(255,255,255,0.05) 45%),
+                linear-gradient(160deg, #ff9a90 0%, #e0473f 60%, #a8291f 100%);
+  }
+  .badge{
+    position:absolute;
+    top: 6px; right: 8px;
+    font-size: 1.1rem;
+  }
+
+  /* expanded question overlay */
+  .overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(10,40,70,0.45);
+    backdrop-filter: blur(3px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 20;
+    padding: 18px;
+  }
+  .overlay[hidden]{ display:none; }
+  .qcard{
+    width: min(560px, 100%);
+    max-height: 86vh;
+    overflow-y: auto;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.85);
+    background: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(215,238,255,0.92));
+    box-shadow: 0 24px 50px rgba(5,30,60,0.45), inset 0 2px 3px rgba(255,255,255,0.9);
+    padding: 22px 22px 26px;
+  }
+  .qcard .qicon{ font-size: 2.2rem; margin-bottom: 6px; display:block; }
+  .qcard h2{
+    margin: 0 0 16px;
+    font-size: 1.2rem;
+    line-height: 1.4;
+    color: var(--ink2);
+  }
+  .options{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .opt{
+    text-align:left;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.9);
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(200,228,255,0.7));
+    box-shadow: 0 4px 8px rgba(20,70,120,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+    font: inherit;
+    font-size: 0.98rem;
+    color: var(--ink2);
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .opt:hover:not(:disabled){ transform: translateY(-1px); }
+  .opt:disabled{ cursor: default; }
+  .opt.correct{
+    background: linear-gradient(180deg, #d9f5c8, #8fd968);
+    border-color: #4fae2e;
+    color: #14400a;
+    font-weight: bold;
+  }
+  .opt.wrong{
+    background: linear-gradient(180deg, #ffd7d3, #ef8880);
+    border-color: #c8362d;
+    color: #4a0b07;
+    font-weight: bold;
+  }
+
+  .feedback{
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.correct{ background: rgba(150,220,110,0.35); color: #1e4d0e; }
+  .feedback.wrong{ background: rgba(230,120,110,0.3); color: #5a1109; }
+
+  .qcard .closebtn{
+    margin-top: 18px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 999px;
+    border: none;
+    font: inherit;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(180deg, #7cd957, var(--aero-green-dark));
+    box-shadow: 0 6px 14px rgba(40,120,20,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+    cursor: pointer;
+  }
+
+  /* taskbar footer */
+  .taskbar{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 15;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #2f7fd6 0%, #1a5fb0 60%, #12467f 100%);
+    border-top: 1px solid rgba(255,255,255,0.5);
+    box-shadow: 0 -6px 16px rgba(0,10,30,0.35);
+  }
+  .startbtn{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    padding: 9px 18px 9px 14px;
+    border-radius: 999px;
+    border: none;
+    font: inherit;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(180deg, #8fe562, var(--aero-green));
+    box-shadow: 0 4px 10px rgba(20,80,10,0.4), inset 0 1px 0 rgba(255,255,255,0.6);
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .startbtn .flag{ font-size: 1.05rem; }
+  .taskbar .progress-wrap{
+    flex: 1;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.4);
+    overflow: hidden;
+  }
+  .taskbar .progress-fill{
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(180deg, #ffe38a, var(--gold));
+    transition: width 0.4s ease;
+  }
+  .taskbar .clock{
+    color: #eaf5ff;
+    font-size: 0.85rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.15);
+    padding: 6px 12px;
+    border-radius: 8px;
+    min-width: 58px;
+    text-align:center;
+  }
+
+  /* end screen */
+  .endscreen{
+    text-align:center;
+    padding: 8px 4px 4px;
+  }
+  .endscreen .big{
+    font-size: 2.4rem;
+    margin: 4px 0 6px;
+  }
+
+  footer.credit{
+    text-align:center;
+    color: rgba(20,60,100,0.55);
+    font-size: 0.78rem;
+    margin-top: 22px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bubbles" id="bubbles"></div>
+
+<div class="page">
+
+  <div class="titlebar-window">
+    <div class="titlebar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="label">retro-tech-recall.exe</span>
+    </div>
+    <div class="titlebar-body">
+      <h1>Retro Tech Recall</h1>
+      <p class="subtitle">Flip a tile, answer the question about early‑2000s tech, and see how many you can get right. just vibes from the dial‑up era.</p>
+    </div>
+  </div>
+
+  <div class="status">
+    <div class="pill score">Score: <span id="scoreVal">0</span> / <span id="totalVal">16</span></div>
+    <div class="pill">Solved: <span id="solvedVal">0</span> / <span id="totalVal2">16</span></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer class="credit">Click any tile to begin • best viewed with your Wi‑Fi, no floppy disk required</footer>
+</div>
+
+<div class="taskbar">
+  <button class="startbtn" id="restartBtn"><span class="flag">🟩</span> Restart</button>
+  <div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="clock" id="clock">00:00</div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="qcard" id="qcard"></div>
+</div>
+
+<script>
+const QUESTIONS = [
+  { icon:"🪟", q:"What year did Windows XP come out?", opts:["1998","2001","2005","2010"], correct:1,
+    fact:"Windows XP launched in October 2001 and stuck around on computers for well over a decade." },
+  { icon:"🎧", q:"Which company released the first iPod in 2001?", opts:["Microsoft","Sony","Apple","Samsung"], correct:2,
+    fact:"Apple's original iPod stored 5GB of music and famously let you carry '1,000 songs in your pocket.'" },
+  { icon:"💬", q:"What was the most popular chat app for talking to friends after school in the 2000s?", opts:["WhatsApp","MSN Messenger","Slack","Discord"], correct:1,
+    fact:"MSN Messenger (with its 'nudge' and typing sounds) was where a whole generation did their homework-avoiding." },
+  { icon:"📱", q:"Which phone was famous for being nearly indestructible, surviving drops that would kill any other phone?", opts:["iPhone 3G","Nokia 3310","BlackBerry Pearl","Motorola RAZR"], correct:1,
+    fact:"The Nokia 3310 became an internet meme for its legendary toughness — and its battery life." },
+  { icon:"📎", q:"What was the name of the animated paperclip that popped up in Microsoft Word offering to help you write a letter?", opts:["Bob","Clippy","Cortana","Rover"], correct:1,
+    fact:"Clippy (officially 'Clippit') debuted in Office 97 and was retired for good by 2007 — not many missed him." },
+  { icon:"🎵", q:"Which free music-sharing service got shut down after being sued for letting people download songs for free?", opts:["Spotify","Napster","iTunes","SoundCloud"], correct:1,
+    fact:"Napster let millions swap MP3s for free in 1999–2001, until lawsuits from the music industry shut it down." },
+  { icon:"🌐", q:"What was the default web browser that came pre-installed on every Windows XP computer?", opts:["Google Chrome","Firefox","Internet Explorer","Safari"], correct:2,
+    fact:"Internet Explorer 6 shipped with XP and, for better or worse, was how most people first browsed the web." },
+  { icon:"🎶", q:"Before Windows Media Player took over, what classic, super-customizable music player had the slogan 'it really whips the llama's ass'?", opts:["Winamp","RealPlayer","Napster","iTunes"], correct:0,
+    fact:"Winamp's skinnable interface made it a cult favorite among 2000s PC users." },
+  { icon:"📞", q:"Before broadband, people connected to the internet over a phone line. What was this slow connection called?", opts:["Wi-Fi","Dial-up","Bluetooth","Fiber"], correct:1,
+    fact:"Dial-up made a distinctive screeching handshake sound — and tied up the house phone line while you were online." },
+  { icon:"🦋", q:"Before Facebook took over, what was the biggest social network where you picked a 'Top 8' friends?", opts:["MySpace","LinkedIn","Instagram","Orkut"], correct:0,
+    fact:"MySpace let you customize your profile with music, glittery graphics, and questionable HTML." },
+  { icon:"🔍", q:"In what year was Google founded?", opts:["1994","1998","2001","2004"], correct:1,
+    fact:"Google was founded in 1998 by Larry Page and Sergey Brin in a garage in California." },
+  { icon:"💾", q:"The 'Save' icon in almost every app still looks like this old storage device. What is it?", opts:["A USB stick","A floppy disk","A CD","A cassette tape"], correct:1,
+    fact:"Floppy disks held as little as 1.44MB — smaller than a single modern photo — yet the icon never left us." },
+  { icon:"🏞️", q:"The default Windows XP desktop wallpaper showed green rolling hills under a blue sky. What was it called?", opts:["Meadow","Serenity","Bliss","Horizon"], correct:2,
+    fact:"'Bliss' is a real, unedited photo taken in California's Napa Valley — one of the most viewed images ever." },
+  { icon:"📴", q:"What super-thin flip phone became the best-selling phone of the 2000s?", opts:["Nokia N-Gage","Motorola RAZR","Sony Ericsson W800","Samsung SGH"], correct:1,
+    fact:"The Motorola RAZR V3 sold over 130 million units and defined 'cool phone' for years." },
+  { icon:"▶️", q:"In what year did YouTube launch?", opts:["2003","2005","2008","2010"], correct:1,
+    fact:"YouTube launched in 2005; its very first video was called 'Me at the zoo.'" },
+  { icon:"📹", q:"What free app did people use to make voice and video calls over the internet, avoiding long-distance phone charges?", opts:["Zoom","Skype","FaceTime","Teams"], correct:1,
+    fact:"Skype launched in 2003 and became the go-to way to call friends and family abroad for free." }
+];
+
+let score = 0;
+let solved = 0;
+let seconds = 0;
+let timerId = null;
+
+function startTimer(){
+  clearInterval(timerId);
+  seconds = 0;
+  updateClock();
+  timerId = setInterval(()=>{ seconds++; updateClock(); }, 1000);
+}
+function updateClock(){
+  const m = String(Math.floor(seconds/60)).padStart(2,'0');
+  const s = String(seconds%60).padStart(2,'0');
+  document.getElementById('clock').textContent = m+":"+s;
+}
+
+function buildGrid(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = "";
+  QUESTIONS.forEach((item, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.idx = idx;
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="face front">
+          <div class="icon">${item.icon}</div>
+          <div class="tap">Tap to answer</div>
+        </div>
+        <div class="face back">
+          <div class="badge" data-badge></div>
+        </div>
+      </div>
+    `;
+    card.addEventListener('click', ()=> openQuestion(idx));
+    grid.appendChild(card);
+  });
+  document.getElementById('totalVal').textContent = QUESTIONS.length;
+  document.getElementById('totalVal2').textContent = QUESTIONS.length;
+}
+
+function openQuestion(idx){
+  const card = document.querySelector(`.card[data-idx="${idx}"]`);
+  if(card.classList.contains('solved')) return;
+
+  const item = QUESTIONS[idx];
+  const overlay = document.getElementById('overlay');
+  const qcard = document.getElementById('qcard');
+
+  qcard.innerHTML = `
+    <span class="qicon">${item.icon}</span>
+    <h2>${item.q}</h2>
+    <div class="options" id="optsWrap"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="closebtn" id="closeBtn">Close</button>
+  `;
+
+  const optsWrap = qcard.querySelector('#optsWrap');
+  item.opts.forEach((optText, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = optText;
+    btn.addEventListener('click', ()=> answer(idx, i, btn));
+    optsWrap.appendChild(btn);
+  });
+
+  qcard.querySelector('#closeBtn').addEventListener('click', closeOverlay);
+  overlay.hidden = false;
+}
+
+function closeOverlay(){
+  document.getElementById('overlay').hidden = true;
+}
+
+function answer(idx, chosen, btnEl){
+  const item = QUESTIONS[idx];
+  const allOpts = document.querySelectorAll('#optsWrap .opt');
+  allOpts.forEach(b=> b.disabled = true);
+
+  const isCorrect = chosen === item.correct;
+  allOpts[item.correct].classList.add('correct');
+  if(!isCorrect) btnEl.classList.add('wrong');
+
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show', isCorrect ? 'correct' : 'wrong');
+  fb.textContent = (isCorrect ? "Correct! " : "Not quite — ") + item.fact;
+
+  const card = document.querySelector(`.card[data-idx="${idx}"]`);
+  card.classList.add('solved', isCorrect ? 'correct' : 'wrong');
+  card.querySelector('[data-badge]').textContent = isCorrect ? "✅" : "❌";
+  card.classList.add('flipped');
+
+  solved++;
+  if(isCorrect) score++;
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('solvedVal').textContent = solved;
+  document.getElementById('progressFill').style.width = Math.round((solved/QUESTIONS.length)*100) + "%";
+
+  if(solved === QUESTIONS.length){
+    clearInterval(timerId);
+    setTimeout(()=> showEndScreen(), 350);
+  }
+}
+
+function showEndScreen(){
+  const qcard = document.getElementById('qcard');
+  let verdict, emoji;
+  const pct = score / QUESTIONS.length;
+  if(pct === 1){ verdict = "Certified dial-up veteran. Flawless run."; emoji = "🏆"; }
+  else if(pct >= 0.75){ verdict = "Solid! You clearly remember (or heard a lot about) the 2000s."; emoji = "🎉"; }
+  else if(pct >= 0.5){ verdict = "Not bad — the Frutiger Aero era has a few secrets left for you."; emoji = "🙂"; }
+  else { verdict = "Time to ask your parents about Napster and Clippy."; emoji = "💾"; }
+
+  qcard.innerHTML = `
+    <div class="endscreen">
+      <div class="big">${emoji}</div>
+      <h2>${score} / ${QUESTIONS.length} correct</h2>
+      <p style="line-height:1.5;">${verdict}</p>
+      <p style="line-height:1.5; color:#3a6f95;">Time: ${document.getElementById('clock').textContent}</p>
+      <button class="closebtn" id="playAgainBtn">Play again</button>
+    </div>
+  `;
+  qcard.querySelector('#playAgainBtn').addEventListener('click', ()=>{
+    closeOverlay();
+    resetGame();
+  });
+}
+
+function resetGame(){
+  score = 0; solved = 0;
+  document.getElementById('scoreVal').textContent = 0;
+  document.getElementById('solvedVal').textContent = 0;
+  document.getElementById('progressFill').style.width = "0%";
+  buildGrid();
+  startTimer();
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+document.getElementById('overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'overlay') closeOverlay();
+});
+
+/* decorative rising bubbles */
+function spawnBubbles(){
+  const wrap = document.getElementById('bubbles');
+  const count = 10;
+  for(let i=0;i<count;i++){
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 30 + Math.random()*90;
+    b.style.width = size+"px";
+    b.style.height = size+"px";
+    b.style.left = (Math.random()*100)+"vw";
+    b.style.animationDuration = (14 + Math.random()*18)+"s";
+    b.style.animationDelay = (-Math.random()*20)+"s";
+    wrap.appendChild(b);
+  }
+}
+
+buildGrid();
+startTimer();
+spawnBubbles();
+</script>
+</body>
+</html>
